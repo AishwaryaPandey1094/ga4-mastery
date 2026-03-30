@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GA4 Mastery — Master Google Analytics 4 & Measurement</title>
+<meta name="description" content="Free interactive flashcards to master GA4, measurement strategy, attribution, incrementality, and Marketing Mix Modeling. 200+ questions across 8 categories and 4 difficulty levels.">
+<meta property="og:title" content="GA4 Mastery — Free Flashcard App">
+<meta property="og:description" content="200+ interactive flashcards covering GA4, attribution, incrementality, MMM, and more. Master measurement for free.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06080f;--bg2:#0c1020;--bg3:#131830;
+  --card:#0e1225;--card2:#151a35;
+  --text:#e0e6f0;--text2:#8892b0;--text3:#4a5580;
+  --accent:#00d4ff;--accent2:#7c5cfc;--accent3:#ff6b9d;
+  --green:#00e88f;--red:#ff4757;--yellow:#ffd43b;
+  --border:rgba(0,212,255,0.08);
+  --glow:0 0 20px rgba(0,212,255,0.1);
+}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:3px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px rgba(0,212,255,0.2)}50%{box-shadow:0 0 20px rgba(0,212,255,0.4)}}
+.fade-in{animation:fadeIn 0.4s ease both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Question database will be loaded from questions.json or embedded
+window.QDB_LOADING = true;
+
+// Try loading from external file first, fallback to embedded
+fetch('questions.json')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(data => {
+    window.QUESTIONS = data.map((q,i) => ({...q, id:i, t:q.t||q.cat, cat:q.t||q.cat}));
+    window.QDB_LOADING = false;
+    if(window.APP_RENDER) window.APP_RENDER();
+  })
+  .catch(() => {
+    // Embedded fallback - minimal set
+    window.QUESTIONS = [];
+    window.QDB_LOADING = false;
+    if(window.APP_RENDER) window.APP_RENDER();
+  });
+</script>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef,useMemo} = React;
+
+const CATS = ["GA4 Fundamentals","Events & Tracking","Attribution & Reporting","Privacy & Consent","Incrementality & Conversion Lift","MMM & Meridian","Google Ads Integration","Role Application (RPL)"];
+const DIFF = ["Beginner","Intermediate","Advanced","Expert"];
+const DIFF_COLOR = ["#00e88f","#ffd43b","#ff6b9d","#7c5cfc"];
+const CAT_ICONS = ["📊","🏷️","🎯","🔒","📈","🧮","🔗","👥"];
+const OPT_LABELS = ["A","B","C","D"];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function App() {
+  const [questions, setQuestions] = useState(window.QUESTIONS || []);
+  const [loading, setLoading] = useState(window.QDB_LOADING);
+  const [view, setView] = useState("home"); // home, quiz, results, leaderboard
+  const [currentSet, setCurrentSet] = useState([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [score, setScore] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ga4m_score')) || {correct:0,wrong:0,streak:0,best:0,total:0,sets:0}; } catch{return{correct:0,wrong:0,streak:0,best:0,total:0,sets:0};}
+  });
+  const [filterCat, setFilterCat] = useState("All");
+  const [filterDiff, setFilterDiff] = useState(-1);
+  const [setAnswers2, setSetAnswers] = useState([]);
+  const [leaderboard, setLeaderboard] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ga4m_lb')) || []; } catch{return[];}
+  });
+  const [userName, setUserName] = useState(() => localStorage.getItem('ga4m_name') || '');
+  const [showNameInput, setShowNameInput] = useState(false);
+
+  useEffect(() => {
+    if (window.QDB_LOADING) {
+      window.APP_RENDER = () => {
+        setQuestions(window.QUESTIONS || []);
+        setLoading(false);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('ga4m_score', JSON.stringify(score)); } catch{}
+  }, [score]);
+
+  useEffect(() => {
+    try { localStorage.setItem('ga4m_lb', JSON.stringify(leaderboard)); } catch{}
+  }, [leaderboard]);
+
+  const filteredPool = useMemo(() => {
+    let pool = questions;
+    if (filterCat !== "All") pool = pool.filter(q => (q.t||q.cat) === filterCat);
+    if (filterDiff >= 0) pool = pool.filter(q => q.d === filterDiff);
+    return pool;
+  }, [questions, filterCat, filterDiff]);
+
+  function startQuiz() {
+    if (filteredPool.length === 0) return;
+    const set = shuffle(filteredPool).slice(0, Math.min(25, filteredPool.length));
+    setCurrentSet(set);
+    setCurrentIdx(0);
+    setFlipped(false);
+    setSelected(null);
+    setSetAnswers([]);
+    setView("quiz");
+  }
+
+  function handleAnswer(idx) {
+    if (selected !== null) return;
+    setSelected(idx);
+    const q = currentSet[currentIdx];
+    const correct = idx === q.c;
+    setSetAnswers(prev => [...prev, { qId: q.id, correct, selected: idx }]);
+    setScore(prev => ({
+      ...prev,
+      correct: prev.correct + (correct ? 1 : 0),
+      wrong: prev.wrong + (correct ? 0 : 1),
+      streak: correct ? prev.streak + 1 : 0,
+      best: correct ? Math.max(prev.best, prev.streak + 1) : prev.best,
+      total: prev.total + 1
+    }));
+    setTimeout(() => setFlipped(true), 500);
+  }
+
+  function nextCard() {
+    if (currentIdx >= currentSet.length - 1) {
+      // Set complete
+      const setCorrect = setAnswers2.filter(a => a.correct).length + (selected === currentSet[currentIdx]?.c ? 1 : 0);
+      setScore(prev => ({...prev, sets: prev.sets + 1}));
+      if (userName) {
+        const entry = { name: userName, score: setCorrect, total: currentSet.length, pct: Math.round((setCorrect/currentSet.length)*100), date: new Date().toLocaleDateString(), cat: filterCat, diff: filterDiff >= 0 ? DIFF[filterDiff] : "Mixed" };
+        setLeaderboard(prev => [...prev, entry].sort((a,b) => b.pct - a.pct).slice(0, 50));
+      }
+      setView("results");
+      return;
+    }
+    setFlipped(false);
+    setSelected(null);
+    setTimeout(() => setCurrentIdx(prev => prev + 1), 300);
+  }
+
+  function shareScore() {
+    const setCorrect = setAnswers2.filter(a => a.correct).length;
+    const pct = Math.round((setCorrect / currentSet.length) * 100);
+    const text = `🎯 GA4 Mastery: ${setCorrect}/${currentSet.length} (${pct}%) on ${filterCat === "All" ? "Mixed" : filterCat} ${filterDiff >= 0 ? DIFF[filterDiff] : ""}\n\nTest your GA4 knowledge: ${window.location.href}`;
+    if (navigator.share) {
+      navigator.share({ title: "GA4 Mastery Score", text });
+    } else {
+      navigator.clipboard?.writeText(text);
+      alert("Score copied to clipboard!");
+    }
+  }
+
+  const catStats = useMemo(() => {
+    return CATS.map((cat, i) => {
+      const catQs = questions.filter(q => (q.t||q.cat) === cat);
+      return { cat, icon: CAT_ICONS[i], total: catQs.length };
+    });
+  }, [questions]);
+
+  const currentQ = currentSet[currentIdx];
+  const totalAnswered = score.correct + score.wrong;
+  const accuracy = totalAnswered > 0 ? Math.round((score.correct / totalAnswered) * 100) : 0;
+
+  // ═══ HOME VIEW ═══
+  if (view === "home") {
+    return (
+      <div style={{minHeight:"100vh",background:"var(--bg)"}}>
+        {/* Hero */}
+        <div style={{padding:"48px 24px 32px",textAlign:"center",background:"linear-gradient(180deg,rgba(0,212,255,0.03) 0%,transparent 100%)"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 16px",borderRadius:20,background:"rgba(0,212,255,0.08)",border:"1px solid rgba(0,212,255,0.15)",marginBottom:20,fontSize:12,color:"var(--accent)",fontWeight:500}}>
+            <span style={{width:6,height:6,borderRadius:3,background:"var(--green)",animation:"pulse 2s infinite"}}></span>
+            {questions.length} Questions · 8 Categories · 4 Difficulty Levels
+          </div>
+          <h1 style={{fontSize:"clamp(28px,5vw,42px)",fontWeight:700,letterSpacing:"-0.03em",marginBottom:8}}>
+            <span style={{background:"linear-gradient(135deg,var(--accent),var(--accent2))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GA4 Mastery</span>
+          </h1>
+          <p style={{fontSize:16,color:"var(--text2)",maxWidth:480,margin:"0 auto 28px",lineHeight:1.6}}>
+            Master Google Analytics 4, attribution, incrementality testing, and measurement strategy with interactive flashcards.
+          </p>
+
+          {/* Quick Stats */}
+          {totalAnswered > 0 && (
+            <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:28,flexWrap:"wrap"}}>
+              {[
+                {label:"Answered",val:totalAnswered,col:"var(--accent)"},
+                {label:"Accuracy",val:`${accuracy}%`,col:accuracy>=80?"var(--green)":accuracy>=60?"var(--yellow)":"var(--red)"},
+                {label:"Streak",val:score.streak,col:"var(--yellow)"},
+                {label:"Best",val:score.best,col:"var(--accent2)"},
+                {label:"Sets Done",val:score.sets,col:"var(--accent3)"},
+              ].map(s => (
+                <div key={s.label} style={{textAlign:"center"}}>
+                  <div style={{fontSize:22,fontWeight:700,color:s.col,fontFamily:"'JetBrains Mono'"}}>{s.val}</div>
+                  <div style={{fontSize:10,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"0.1em"}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div style={{padding:"0 24px",maxWidth:700,margin:"0 auto 20px"}}>
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>Difficulty</div>
+          <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>
+            <button onClick={() => setFilterDiff(-1)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${filterDiff===-1?"rgba(0,212,255,0.3)":"var(--border)"}`,background:filterDiff===-1?"rgba(0,212,255,0.1)":"transparent",color:filterDiff===-1?"var(--accent)":"var(--text3)",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>All Levels</button>
+            {DIFF.map((d,i) => (
+              <button key={d} onClick={() => setFilterDiff(i)} style={{padding:"6px 14px",borderRadius:8,border:`1px solid ${filterDiff===i?DIFF_COLOR[i]+"40":"var(--border)"}`,background:filterDiff===i?DIFF_COLOR[i]+"15":"transparent",color:filterDiff===i?DIFF_COLOR[i]:"var(--text3)",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>{d}</button>
+            ))}
+          </div>
+
+          <div style={{fontSize:11,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8,fontWeight:600}}>Category</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8,marginBottom:24}}>
+            <button onClick={() => setFilterCat("All")} style={{padding:"12px 16px",borderRadius:10,border:`1px solid ${filterCat==="All"?"rgba(0,212,255,0.3)":"var(--border)"}`,background:filterCat==="All"?"rgba(0,212,255,0.08)":"var(--card)",color:filterCat==="All"?"var(--accent)":"var(--text2)",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,textAlign:"left"}}>🎲 All Categories ({filteredPool.length})</button>
+            {catStats.map((cs,i) => (
+              <button key={cs.cat} onClick={() => setFilterCat(cs.cat)} style={{padding:"12px 16px",borderRadius:10,border:`1px solid ${filterCat===cs.cat?"rgba(0,212,255,0.3)":"var(--border)"}`,background:filterCat===cs.cat?"rgba(0,212,255,0.08)":"var(--card)",color:filterCat===cs.cat?"var(--accent)":"var(--text2)",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,textAlign:"left",display:"flex",justifyContent:"space-between"}}>
+                <span>{cs.icon} {cs.cat}</span>
+                <span style={{color:"var(--text3)",fontSize:11}}>{questions.filter(q=>(q.t||q.cat)===cs.cat && (filterDiff<0||q.d===filterDiff)).length}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Start Button */}
+        <div style={{padding:"0 24px",maxWidth:700,margin:"0 auto 20px",textAlign:"center"}}>
+          <button onClick={startQuiz} disabled={filteredPool.length===0} style={{padding:"14px 48px",borderRadius:12,border:"none",background:filteredPool.length>0?"linear-gradient(135deg,var(--accent),var(--accent2))":"var(--bg3)",color:filteredPool.length>0?"#000":"var(--text3)",fontSize:16,fontWeight:700,cursor:filteredPool.length>0?"pointer":"not-allowed",fontFamily:"inherit",letterSpacing:"-0.01em",transition:"all 0.3s",boxShadow:filteredPool.length>0?"0 4px 20px rgba(0,212,255,0.2)":"none"}}>
+            Start Quiz ({Math.min(25, filteredPool.length)} cards)
+          </button>
+        </div>
+
+        {/* Name Input */}
+        <div style={{padding:"0 24px",maxWidth:700,margin:"0 auto 20px",textAlign:"center"}}>
+          {!userName ? (
+            <div>
+              <button onClick={() => setShowNameInput(!showNameInput)} style={{background:"none",border:"none",color:"var(--text3)",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                {showNameInput ? "Cancel" : "Set your name for leaderboard →"}
+              </button>
+              {showNameInput && (
+                <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:8}}>
+                  <input id="nameInput" placeholder="Your name" style={{padding:"8px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text)",fontSize:13,fontFamily:"inherit",width:200}} />
+                  <button onClick={() => {const n=document.getElementById('nameInput').value.trim();if(n){setUserName(n);localStorage.setItem('ga4m_name',n);setShowNameInput(false);}}} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"var(--accent2)",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{fontSize:12,color:"var(--text3)"}}>Playing as <span style={{color:"var(--accent)"}}>{userName}</span> · <button onClick={() => {setUserName('');localStorage.removeItem('ga4m_name');}} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline"}}>change</button></div>
+          )}
+        </div>
+
+        {/* Leaderboard Preview */}
+        {leaderboard.length > 0 && (
+          <div style={{padding:"0 24px",maxWidth:700,margin:"0 auto 40px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <h3 style={{fontSize:14,fontWeight:600,color:"var(--text2)"}}>🏆 Recent Scores</h3>
+              <button onClick={() => {if(confirm('Clear leaderboard?')){setLeaderboard([]);setScore({correct:0,wrong:0,streak:0,best:0,total:0,sets:0});}}} style={{background:"none",border:"none",color:"var(--text3)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Reset</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {leaderboard.slice(0,5).map((e,i) => (
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 14px",borderRadius:8,background:"var(--card)",border:"1px solid var(--border)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:14,fontWeight:700,color:i===0?"var(--yellow)":i===1?"var(--text2)":"var(--text3)",width:20}}>{i+1}.</span>
+                    <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{e.name}</span>
+                    <span style={{fontSize:11,color:"var(--text3)"}}>{e.cat === "All" ? "Mixed" : e.cat} · {e.diff}</span>
+                  </div>
+                  <span style={{fontSize:14,fontWeight:700,fontFamily:"'JetBrains Mono'",color:e.pct>=80?"var(--green)":e.pct>=60?"var(--yellow)":"var(--red)"}}>{e.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{padding:"24px",textAlign:"center",borderTop:"1px solid var(--border)",color:"var(--text3)",fontSize:11}}>
+          Built for Google RPL interview prep · GA4, Attribution, Incrementality, MMM & Meridian
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ QUIZ VIEW ═══
+  if (view === "quiz" && currentQ) {
+    const setCorrectCount = setAnswers2.filter(a => a.correct).length;
+    return (
+      <div style={{minHeight:"100vh",background:"var(--bg)",padding:"16px 16px 32px"}}>
+        {/* Quiz Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,maxWidth:640,margin:"0 auto 16px"}}>
+          <button onClick={() => setView("home")} style={{background:"none",border:"none",color:"var(--text3)",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>← Back</button>
+          <div style={{display:"flex",gap:12,alignItems:"center",fontSize:12}}>
+            <span style={{color:"var(--green)"}}>✓{setCorrectCount}</span>
+            <span style={{color:"var(--red)"}}>✗{setAnswers2.filter(a=>!a.correct).length}</span>
+            <span style={{color:"var(--yellow)"}}>🔥{score.streak}</span>
+          </div>
+        </div>
+
+        <div style={{maxWidth:640,margin:"0 auto"}}>
+          {/* Progress */}
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <span style={{fontSize:12,color:"var(--text3)",fontFamily:"'JetBrains Mono'",minWidth:45}}>{currentIdx+1}/{currentSet.length}</span>
+            <div style={{flex:1,height:4,borderRadius:2,background:"var(--bg3)"}}>
+              <div style={{width:`${((currentIdx+1)/currentSet.length)*100}%`,height:"100%",borderRadius:2,background:"linear-gradient(90deg,var(--accent),var(--accent2))",transition:"width 0.4s ease"}}></div>
+            </div>
+            <span style={{fontSize:10,padding:"3px 8px",borderRadius:4,background:DIFF_COLOR[currentQ.d||0]+"18",color:DIFF_COLOR[currentQ.d||0],fontWeight:600,fontFamily:"'JetBrains Mono'"}}>{DIFF[currentQ.d||0]}</span>
+          </div>
+
+          {/* Card with flip */}
+          <div style={{perspective:1200,marginBottom:16}}>
+            <div style={{position:"relative",minHeight:440,transition:"transform 0.6s cubic-bezier(0.4,0,0.2,1)",transformStyle:"preserve-3d",transform:flipped?"rotateY(180deg)":"rotateY(0)"}}>
+
+              {/* FRONT */}
+              <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",borderRadius:16,background:"linear-gradient(160deg,var(--card),var(--card2))",border:"1px solid var(--border)",padding:"24px 20px",display:"flex",flexDirection:"column"}}>
+                <div style={{fontSize:10,fontWeight:600,color:"var(--accent2)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>{currentQ.t || currentQ.cat}</div>
+                <div style={{fontSize:16,fontWeight:600,lineHeight:1.55,marginBottom:24,color:"var(--text)"}}>{currentQ.q}</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8,flex:1}}>
+                  {currentQ.o.map((opt,i) => {
+                    let bg="rgba(0,212,255,0.03)";let bdr="var(--border)";let col="var(--text2)";
+                    if(selected!==null){
+                      if(i===currentQ.c){bg="rgba(0,232,143,0.1)";bdr="rgba(0,232,143,0.4)";col="var(--green)";}
+                      else if(i===selected){bg="rgba(255,71,87,0.1)";bdr="rgba(255,71,87,0.4)";col="var(--red)";}
+                    }
+                    return(
+                      <button key={i} onClick={()=>handleAnswer(i)} disabled={selected!==null} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",borderRadius:10,border:`1px solid ${bdr}`,background:bg,color:col,fontSize:13.5,cursor:selected!==null?"default":"pointer",fontFamily:"inherit",textAlign:"left",lineHeight:1.45,transition:"all 0.25s",fontWeight:selected!==null&&i===currentQ.c?600:400}}>
+                        <span style={{fontWeight:700,minWidth:22,fontFamily:"'JetBrains Mono'",color:selected!==null&&i===currentQ.c?"var(--green)":selected===i&&i!==currentQ.c?"var(--red)":"var(--accent2)"}}>{OPT_LABELS[i]}</span>
+                        <span style={{flex:1}}>{opt}</span>
+                        {selected!==null&&i===currentQ.c&&<span style={{fontSize:16}}>✓</span>}
+                        {selected===i&&i!==currentQ.c&&<span style={{fontSize:16}}>✗</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selected!==null&&(
+                  <button onClick={()=>setFlipped(true)} className="fade-in" style={{marginTop:14,padding:"10px 24px",borderRadius:10,border:"1px solid rgba(0,212,255,0.15)",background:"rgba(0,212,255,0.06)",color:"var(--accent)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",alignSelf:"center"}}>See Explanation →</button>
+                )}
+              </div>
+
+              {/* BACK */}
+              <div style={{position:"absolute",inset:0,backfaceVisibility:"hidden",transform:"rotateY(180deg)",borderRadius:16,background:`linear-gradient(160deg,var(--card),${selected===currentQ.c?"rgba(0,232,143,0.06)":"rgba(255,71,87,0.06)"})`,border:`1px solid ${selected===currentQ.c?"rgba(0,232,143,0.15)":"rgba(255,71,87,0.15)"}`,padding:"24px 20px",display:"flex",flexDirection:"column"}}>
+                <div style={{fontSize:10,fontWeight:600,color:selected===currentQ.c?"var(--green)":"var(--red)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>{selected===currentQ.c?"✓ CORRECT":"✗ INCORRECT"}</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--green)",marginBottom:6}}>Answer: {OPT_LABELS[currentQ.c]}) {currentQ.o[currentQ.c]}</div>
+                {selected!==null&&selected!==currentQ.c&&(
+                  <div style={{fontSize:12,color:"var(--red)",marginBottom:12}}>You selected: {OPT_LABELS[selected]}) {currentQ.o[selected]}</div>
+                )}
+                <div style={{fontSize:14,lineHeight:1.7,color:"var(--text2)",flex:1,marginTop:8}}>{currentQ.x}</div>
+                <button onClick={nextCard} style={{marginTop:16,padding:"12px 24px",borderRadius:10,border:"none",background:"linear-gradient(135deg,var(--accent),var(--accent2))",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  {currentIdx >= currentSet.length - 1 ? "See Results →" : "Next Card →"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Dot navigation */}
+          <div style={{display:"flex",justifyContent:"center",gap:4,flexWrap:"wrap"}}>
+            {currentSet.map((q,i) => {
+              const ans = setAnswers2[i];
+              return <div key={i} style={{width:8,height:8,borderRadius:2,transition:"all 0.2s",background:i===currentIdx?"var(--accent)":ans?.correct?"var(--green)":ans?"var(--red)":"var(--bg3)",transform:i===currentIdx?"scale(1.5)":"scale(1)"}}></div>;
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ RESULTS VIEW ═══
+  if (view === "results") {
+    const setCorrect = setAnswers2.filter(a => a.correct).length;
+    const pct = Math.round((setCorrect / currentSet.length) * 100);
+    const grade = pct >= 90 ? "A+" : pct >= 80 ? "A" : pct >= 70 ? "B" : pct >= 60 ? "C" : pct >= 50 ? "D" : "F";
+    const gradeColor = pct >= 80 ? "var(--green)" : pct >= 60 ? "var(--yellow)" : "var(--red)";
+    const message = pct >= 90 ? "Outstanding! You're interview-ready." : pct >= 80 ? "Strong performance. Keep sharpening." : pct >= 60 ? "Decent foundation. Review the missed areas." : "Keep studying. Focus on weak categories.";
+
+    return (
+      <div style={{minHeight:"100vh",background:"var(--bg)",padding:"48px 24px",textAlign:"center"}}>
+        <div className="fade-in" style={{maxWidth:500,margin:"0 auto"}}>
+          <div style={{fontSize:72,fontWeight:800,fontFamily:"'JetBrains Mono'",color:gradeColor,marginBottom:8}}>{grade}</div>
+          <div style={{fontSize:32,fontWeight:700,color:"var(--text)",marginBottom:4}}>{setCorrect}/{currentSet.length}</div>
+          <div style={{fontSize:14,color:"var(--text2)",marginBottom:8}}>{pct}% accuracy</div>
+          <p style={{color:"var(--text2)",fontSize:14,marginBottom:32}}>{message}</p>
+
+          {/* Category breakdown */}
+          <div style={{textAlign:"left",marginBottom:32}}>
+            <h3 style={{fontSize:13,color:"var(--text3)",marginBottom:12,textTransform:"uppercase",letterSpacing:"0.08em"}}>Breakdown</h3>
+            {[...new Set(currentSet.map(q => q.t||q.cat))].map(cat => {
+              const catQs = currentSet.filter(q => (q.t||q.cat)===cat);
+              const catCorrect = catQs.filter((q,i) => {
+                const origIdx = currentSet.indexOf(q);
+                return setAnswers2[origIdx]?.correct;
+              }).length;
+              const catPct = Math.round((catCorrect/catQs.length)*100);
+              return (
+                <div key={cat} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderRadius:8,background:"var(--card)",marginBottom:4,border:"1px solid var(--border)"}}>
+                  <span style={{fontSize:12,color:"var(--text2)"}}>{cat}</span>
+                  <span style={{fontSize:13,fontWeight:700,fontFamily:"'JetBrains Mono'",color:catPct>=80?"var(--green)":catPct>=60?"var(--yellow)":"var(--red)"}}>{catCorrect}/{catQs.length}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+            <button onClick={shareScore} style={{padding:"12px 24px",borderRadius:10,border:"1px solid rgba(0,212,255,0.2)",background:"rgba(0,212,255,0.06)",color:"var(--accent)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>📤 Share Score</button>
+            <button onClick={startQuiz} style={{padding:"12px 24px",borderRadius:10,border:"none",background:"linear-gradient(135deg,var(--accent),var(--accent2))",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Next 25 Cards →</button>
+            <button onClick={() => setView("home")} style={{padding:"12px 24px",borderRadius:10,border:"1px solid var(--border)",background:"transparent",color:"var(--text3)",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"inherit"}}>Home</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <div style={{padding:48,textAlign:"center",color:"var(--text2)"}}>Loading questions...</div>;
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
