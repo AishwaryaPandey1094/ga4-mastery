@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GA4 Mastery — Master Google Analytics 4 & Measurement</title>
-<meta name="description" content="Free interactive flashcards to master GA4, measurement strategy, attribution, incrementality, and Marketing Mix Modeling. 200+ questions across 8 categories and 4 difficulty levels.">
+<meta name="description" content="Free interactive flashcards to master GA4, measurement strategy, attribution, incrementality, and Marketing Mix Modeling. 200+ questions across 7 categories and 4 difficulty levels.">
 <meta property="og:title" content="GA4 Mastery — Free Flashcard App">
 <meta property="og:description" content="200+ interactive flashcards covering GA4, attribution, incrementality, MMM, and more. Master measurement for free.">
 <meta property="og:type" content="website">
@@ -57,10 +57,10 @@ fetch('questions.json')
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef,useMemo} = React;
 
-const CATS = ["GA4 Fundamentals","Events & Tracking","Attribution & Reporting","Privacy & Consent","Incrementality & Conversion Lift","MMM & Meridian","Google Ads Integration","Role Application (RPL)"];
+const CATS = ["GA4 Fundamentals","Events & Tracking","Attribution & Reporting","Privacy & Consent","Incrementality & Conversion Lift","MMM & Meridian","Google Ads Integration"];
 const DIFF = ["Beginner","Intermediate","Advanced","Expert"];
 const DIFF_COLOR = ["#00e88f","#ffd43b","#ff6b9d","#7c5cfc"];
-const CAT_ICONS = ["📊","🏷️","🎯","🔒","📈","🧮","🔗","👥"];
+const CAT_ICONS = ["📊","🏷️","🎯","🔒","📈","🧮","🔗"];
 const OPT_LABELS = ["A","B","C","D"];
 
 function shuffle(arr) {
@@ -190,7 +190,7 @@ function App() {
         <div style={{padding:"48px 24px 32px",textAlign:"center",background:"linear-gradient(180deg,rgba(0,212,255,0.03) 0%,transparent 100%)"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 16px",borderRadius:20,background:"rgba(0,212,255,0.08)",border:"1px solid rgba(0,212,255,0.15)",marginBottom:20,fontSize:12,color:"var(--accent)",fontWeight:500}}>
             <span style={{width:6,height:6,borderRadius:3,background:"var(--green)",animation:"pulse 2s infinite"}}></span>
-            {questions.length} Questions · 8 Categories · 4 Difficulty Levels
+            {questions.length} Questions · 7 Categories · 4 Difficulty Levels
           </div>
           <h1 style={{fontSize:"clamp(28px,5vw,42px)",fontWeight:700,letterSpacing:"-0.03em",marginBottom:8}}>
             <span style={{background:"linear-gradient(135deg,var(--accent),var(--accent2))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>GA4 Mastery</span>
@@ -290,7 +290,7 @@ function App() {
 
         {/* Footer */}
         <div style={{padding:"24px",textAlign:"center",borderTop:"1px solid var(--border)",color:"var(--text3)",fontSize:11}}>
-          Built for Google RPL interview prep · GA4, Attribution, Incrementality, MMM & Meridian
+          Built for mastering GA4 analysis, interpretation, problem-solving and critical thinking
         </div>
       </div>
     );
@@ -384,7 +384,7 @@ function App() {
     const pct = Math.round((setCorrect / currentSet.length) * 100);
     const grade = pct >= 90 ? "A+" : pct >= 80 ? "A" : pct >= 70 ? "B" : pct >= 60 ? "C" : pct >= 50 ? "D" : "F";
     const gradeColor = pct >= 80 ? "var(--green)" : pct >= 60 ? "var(--yellow)" : "var(--red)";
-    const message = pct >= 90 ? "Outstanding! You're interview-ready." : pct >= 80 ? "Strong performance. Keep sharpening." : pct >= 60 ? "Decent foundation. Review the missed areas." : "Keep studying. Focus on weak categories.";
+    const message = pct >= 90 ? "Outstanding! You've mastered this level." : pct >= 80 ? "Strong performance. Keep sharpening." : pct >= 60 ? "Decent foundation. Review the missed areas." : "Keep studying. Focus on weak categories.";
 
     return (
       <div style={{minHeight:"100vh",background:"var(--bg)",padding:"48px 24px",textAlign:"center"}}>
